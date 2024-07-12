@@ -1,0 +1,12 @@
+__pycache__
+.env
+/venv
+/helpers/auth
+/helpers/base_logger/__pycache__
+/helpers/config/__pycache__
+/helpers/cors/__pycache__
+/helpers/database/__pycache__
+/resourses/__pycache__
+/model/__pycache__
+hello_flask.log
+/migrations

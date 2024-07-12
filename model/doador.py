@@ -17,6 +17,7 @@ doadorCompleto_fields = {
   'nascimento': fields.String,
   'telefone': fields.String,
   'email': fields.String,
+  'senha': fields.String,
   'cpf': fields.String,
   'numConta': fields.String,
 }

@@ -37,7 +37,7 @@ class Doadores(Resource):
     def get(self):
         logger.info("Doadores listados com sucesso!")
         doadores = Doador.query.all()
-        return marshal(doadores, doador_fields), 200
+        return marshal(doadores, doadorCompleto_fields), 200
 
     def post(self):
         args = parser.parse_args()
@@ -119,7 +119,7 @@ class Doadores(Resource):
             db.session.commit()
 
             logger.info("Doador cadastrado com sucesso!")
-            return marshal(doador, doador_fields), 201
+            return marshal(doador, doadorCompleto_fields), 201
 
         except IntegrityError as e:
 
@@ -169,7 +169,7 @@ class DoadorById(Resource):
             message = Message(f"Doador {id} não encontrado", 1)
             return marshal(message, message_fields), 404
         logger.info(f"Doador {id} encontrado com sucesso!")
-        return marshal(doador, doador_fields), 200
+        return marshal(doador, doadorCompleto_fields), 200
 
     @token_verifica
     def put(self, tipo, refreshToken, usuario_id, id):
@@ -192,21 +192,47 @@ class DoadorById(Resource):
             telefone = args["telefone"]
             email = args["email"]
             senha = args["senha"]
+            cpf = args["cpf"]
+            numConta = args["numConta"]
 
             if not nome or len(nome) < 3:
                 logger.info("Nome não informado ou não tem no mínimo 3 caracteres")
                 message = Message("Nome não informado ou não tem no mínimo 3 caracteres", 2)
                 return marshal(message, message_fields), 400
 
-
             if not nascimento:
                 logger.info("Nascimento não informado")
                 message = Message("Nascimento não informado", 2)
                 return marshal(message, message_fields), 400
+            
+            if not cpf:
+                logger.info("CPF não informado")
+                message = Message("CPF não informado", 2)
+                return marshal(message, message_fields), 400
+            
+            if not numConta:
+                logger.info("Número da conta não informado")
+                message = Message("Número da conta não informado", 2)
+                return marshal(message, message_fields), 400
+
 
             if not re.match(r'^\d{2}/\d{2}/\d{4}$', nascimento):
                 logger.info("Formato de data de nascimento inválido. Use o formato dd/mm/yyyy.")
                 message = Message("Formato de data de nascimento inválido. Use o formato dd/mm/yyyy.", 2)
+                return marshal(message, message_fields), 400
+            
+            if not re.match(r'^\d{3}\.\d{3}\.\d{3}-\d{2}$', cpf):
+                message = Message("cpf no formato errado", 2)
+                return marshal(message, message_fields), 400
+
+            if not cpfValidate.validate(args["cpf"]):
+                logger.error(f"CPF {args['cpf']} não valido")
+                message = Message("cpf Inválido", 2)
+                return marshal(message, message_fields), 400
+            
+            if not numConta or len(numConta) < 5 or len(numConta) > 5:
+                logger.info("Número da conta tem que ser 5 números")
+                message = Message("Número da conta tem que ser 5 números", 2)
                 return marshal(message, message_fields), 400
 
             try:
@@ -258,12 +284,14 @@ class DoadorById(Resource):
             doador.telefone = telefone
             doador.email = email
             doador.senha = generate_password_hash(senha)
+            doador.cpf = cpf
+            doador.numConta = numConta
 
             db.session.add(doador)
             db.session.commit()
 
             logger.info("Doador atualizado com sucesso!")
-            return marshal(doador, doador_fields), 200
+            return marshal(doador, doadorCompleto_fields), 200
 
         except IntegrityError as e:
             if 'email' in str(e.orig):
@@ -310,7 +338,7 @@ class DoadorByNome(Resource):
             return marshal(message, message_fields), 404
 
         logger.info(f"Doador {query} encontrado com sucesso!")
-        return marshal(doadores, doador_fields), 200
+        return marshal(doadores, doadorCompleto_fields), 200
 
 class updatedInfoPaymentDoador(Resource):
     @token_verifica

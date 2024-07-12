@@ -52,7 +52,7 @@ api.add_resource(DoadorInfo, '/doadorinfo')
 api.add_resource(DoadorById,'/doadores/<int:id>')
 api.add_resource(DoacoesCampanha, '/doacoes-campanha')
 api.add_resource(DoacoesDoador, '/doacoes-doador') #Histórico das doações que o doador fez
-api.add_resource(updatedInfoPaymentDoador, '/doador/infoPagamento')
+# api.add_resource(updatedInfoPaymentDoador, '/doador/infoPagamento')
 api.add_resource(HistoricoDoacoesAtleta, '/historico-campanha') #Histórico das doações que recebeu
 
 

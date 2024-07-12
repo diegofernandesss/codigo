@@ -1,7 +1,6 @@
 __pycache__
 .env
 /venv
-/helpers/auth
 /helpers/base_logger/__pycache__
 /helpers/config/__pycache__
 /helpers/cors/__pycache__

@@ -171,7 +171,7 @@ class DoacoesCampanha(Resource):
                     </body>
                 </html>
                 '''
-            # mail.send(msg)
+            mail.send(msg)
 
             logger.info("Doacao cadastrado com sucesso!")
             return marshal(doacao, doacaoCampanha_fields), 201

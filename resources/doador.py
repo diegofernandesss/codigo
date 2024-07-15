@@ -18,6 +18,7 @@ parser.add_argument('nascimento', type=str, help='Problema no nascimento', requi
 parser.add_argument('telefone', type=str, help='Problema no telefone', required=False)
 parser.add_argument('email', type=str, help='Problema no email', required=False)
 parser.add_argument('senha', type=str, help='Problema na senha', required=False)
+parser.add_argument("novaSenha", type=str, help="nova senha não informado", required=False)
 parser.add_argument('cpf', type=str, help='Problema no cpf', required=False)
 parser.add_argument('numConta', type=str, help='Problema no número da conta', required=False)
 parser.add_argument('agenciaConta', type=str, help='Problema na agência da conta', required=False)
@@ -269,21 +270,10 @@ class DoadorById(Resource):
                 message = Message("Telefone informado incorretamente", 2)
                 return marshal(message, message_fields), 400
 
-            if not senha:
-                logger.info("Senha não informada")
-                message = Message("Senha não informada", 2)
-                return marshal(message, message_fields), 400
-
-            verify_senha = padrao_senha.test(senha)
-            if len(verify_senha) != 0:
-                message = Message("Senha informada incorretamente", 2)
-                return marshal(message, message_fields), 400
-            
             doador.nome = nome
             doador.nascimento = nascimento
             doador.telefone = telefone
             doador.email = email
-            doador.senha = generate_password_hash(senha)
             doador.cpf = cpf
             doador.numConta = numConta
 
@@ -301,6 +291,58 @@ class DoadorById(Resource):
             logger.error(f"Error: {e}")
             message = Message("Erro ao atualizar o doador", 2)
             return marshal(message, message_fields), 404
+
+    @token_verifica
+    def patch(self, tipo, refreshToken, usuario_id, id):
+        if tipo != "doador":
+            logger.error(f"Usuario nao autorizado")
+            message = Message("Acesso Não autorizado", 2)
+            return marshal(message, message_fields), 401
+        
+        args = parser.parse_args()
+        try:
+            doador = Doador.query.get(id)
+
+            if doador is None:
+                logger.error(f"Doador {id} não encontrado")
+                message = Message(f"Doador {id} não encontrado", 1)
+                return marshal(message, message_fields), 404
+            
+            senha = args["senha"]
+            novaSenha = args["novaSenha"]
+
+            if not senha:
+                logger.info("Senha nao informada")
+                message = Message("Senha não informada", 2)
+                return marshal(message, message_fields), 400
+            
+            if not novaSenha:
+                logger.info("Nova senha nao informada")
+                message = Message("Nova senha não informada", 2)
+                return marshal(message, message_fields), 400
+
+            if not doador.verificar_senha(senha):
+                logger.info("Senha informada incorretamente")
+                message = Message("Senha informada incorretamente", 2)
+                return marshal(message, message_fields), 400
+
+            verify_senha = padrao_senha.test(novaSenha)
+            if len(verify_senha) != 0:
+                message = Message("Senha no formato errado", 2)
+                return marshal(message, message_fields), 400
+            
+            doador.senha = generate_password_hash(novaSenha)
+            db.session.add(doador)
+            db.session.commit()
+            
+            logger.info("Senha do doador atualizada com sucesso")
+            message = Message("Senha atualizada com sucesso", 0)
+            return marshal(message, message_fields), 200
+        except:
+            logger.error("Erro ao atualizar a senha do doador")
+            message = Message("Erro ao atualizar a senha do doador", 2)
+            return marshal(message, message_fields), 200
+
 
     def delete(self, id):
         doador = Doador.query.get(id)
@@ -396,7 +438,6 @@ class updatedInfoPaymentDoador(Resource):
             message = Message("Erro ao atualizar a conta do doador", 2)
             return marshal(message, message_fields), 404
         
-
 class DoadorInfo(Resource):
     @token_verifica
     def get(self, tipo, refreshToken, usuario_id):

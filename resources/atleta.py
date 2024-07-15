@@ -13,12 +13,14 @@ from model.campanha import *
 from sqlalchemy import desc
 
 parser = reqparse.RequestParser()
-parser.add_argument('nome', type=str, help='Problema no nome', required=True)
-parser.add_argument('genero', type=str, help='Problema no genero', required=True)
-parser.add_argument('nascimento', type=str, help='Problema no nascimento', required=True)
-parser.add_argument('telefone', type=str, help='Problema no telefone', required=True)
-parser.add_argument('email', type=str, help='Problema no email', required=True)
-parser.add_argument('senha', type=str, help='Problema na senha', required=True)
+parser.add_argument('nome', type=str, help='Problema no nome', required=False)
+parser.add_argument('genero', type=str, help='Problema no genero', required=False)
+parser.add_argument('nascimento', type=str, help='Problema no nascimento', required=False)
+parser.add_argument('telefone', type=str, help='Problema no telefone', required=False)
+parser.add_argument('email', type=str, help='Problema no email', required=False)
+parser.add_argument('senha', type=str, help='Problema na senha', required=False)
+parser.add_argument("novaSenha", type=str, help="nova senha não informado", required=False)
+
 
 padrao_email = r'^[\w\.-]+@[\w\.-]+\.\w+$'
 
@@ -53,6 +55,11 @@ class Atletas(Resource):
             if not nascimento:
                 logger.info("Nascimento não informado")
                 message = Message("Nascimento não informado", 2)
+                return marshal(message, message_fields), 400
+            
+            if not genero:
+                logger.info("genero nao informado")
+                message = Message("Gênero não informado", 2)
                 return marshal(message, message_fields), 400
 
             if not re.match(r'^\d{2}/\d{2}/\d{4}$', nascimento):
@@ -132,6 +139,7 @@ class AtletaCampaigns(Resource):
         if tipo != 'atleta':
             message = Message("Acesso Não autorizado", 2)
             return marshal(message, message_fields), 401
+        
         pageIndex = request.args.get("pageIndex", 1, type=int)
         perPage= request.args.get("per-page", 6, type=int)
 
@@ -175,13 +183,13 @@ class AtletaById(Resource):
         logger.info(f"Atleta {id} encontrado com sucesso!")
         return marshal(atleta, atleta_fields)
 
-   # @token_verifica
-    def put(self, id):
-    #    if tipo != 'atleta':
-     #       logger.error(f'Usuário não autorizado')
-      #      message = Message("Acesso não autorizado", 2)
-       #     return marshal(message, message_fields), 401
-
+    @token_verifica
+    def patch(self, tipo, refreshToken, usuario_id, id):
+        if tipo != 'atleta':
+           logger.error(f'Usuário não autorizado')
+           message = Message("Acesso não autorizado", 2)
+           return marshal(message, message_fields), 401
+        
         args = parser.parse_args()
 
         try:
@@ -191,32 +199,90 @@ class AtletaById(Resource):
                 logger.error(f"Atleta {id} não encontrado")
                 message = Message(f"Atleta {id} não encontrado", 1)
                 return marshal(message, message_fields), 404
-
-            atleta.nome = args["nome"]
-            atleta.genero = args["genero"]
-            atleta.nascimento = args["nascimento"]
-            atleta.telefone = args["telefone"]
-            atleta.email = args["email"]
+            
             senha = args["senha"]
+            novaSenha = args["novaSenha"]
+
+            if not senha:
+                logger.info("Senha não informada")
+                message = Message("Senha não informada", 2)
+                return marshal(message, message_fields), 400
+
+            if not novaSenha:
+                logger.info("Nova senha nao informada")
+                message = Message("Nova senha não informada", 2)
+                return marshal(message, message_fields), 400
+            
+            if not atleta.verificar_senha(senha):
+                logger.info("Senha informada incorretamente")
+                message = Message("Senha informada incorretamente", 2)
+                return marshal(message, message_fields), 400
+            
+            verify_senha = padrao_senha.test(novaSenha)
+            if len(verify_senha) != 0:
+                message = Message("Senha no formato errado", 2)
+                return marshal(message, message_fields), 400
+
+            atleta.senha = generate_password_hash(novaSenha)
+            db.session.add(atleta)
+            db.session.commit()
+
+            logger.info("Senha do atleta atualizada com sucesso")
+            message = Message("Senha atualizada com sucesso", 0)
+            return marshal(atleta, atleta_fields), 200
+        
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            message = Message("Erro ao atualizar atleta", 2)
+            return marshal(message, message_fields), 404
+
+
+    @token_verifica
+    def put(self, tipo, refreshToken, usuario_id, id):
+        if tipo != 'atleta':
+           logger.error(f'Usuário não autorizado')
+           message = Message("Acesso não autorizado", 2)
+           return marshal(message, message_fields), 401
+
+        args = parser.parse_args()
+
+        try:
+            nome = args["nome"]
+            genero = args["genero"]
+            nascimento = args["nascimento"]
+            telefone = args["telefone"]
+            email = args["email"]
+
+            atleta = Atleta.query.get(id)
+
+            if atleta is None:
+                logger.error(f"Atleta {id} não encontrado")
+                message = Message(f"Atleta {id} não encontrado", 1)
+                return marshal(message, message_fields), 404
 
             # Validações dos campos
-            if not atleta.nome or len(atleta.nome) < 3:
+            if not nome or len(nome) < 3:
                 logger.info("Nome não informado ou não tem no mínimo 3 caracteres")
                 message = Message("Nome não informado ou não tem no mínimo 3 caracteres", 2)
                 return marshal(message, message_fields), 400
+            
+            if not genero:
+                logger.info("genero nao informado")
+                message = Message("Gênero não informado", 2)
+                return marshal(message, message_fields), 400
 
-            if not atleta.nascimento:
+            if not nascimento:
                 logger.info("Nascimento não informado")
                 message = Message("Nascimento não informado", 2)
                 return marshal(message, message_fields), 400
 
-            if not re.match(r'^\d{2}/\d{2}/\d{4}$', atleta.nascimento):
+            if not re.match(r'^\d{2}/\d{2}/\d{4}$', nascimento):
                 logger.info("Formato de data de nascimento inválido. Use o formato dd/mm/yyyy.")
                 message = Message("Formato de data de nascimento inválido. Use o formato dd/mm/yyyy.", 2)
                 return marshal(message, message_fields), 400
 
             try:
-                data_nascimento = datetime.strptime(atleta.nascimento, "%d/%m/%Y")
+                data_nascimento = datetime.strptime(nascimento, "%d/%m/%Y")
             except ValueError:
                 logger.info("Data de nascimento inválida.")
                 message = Message("Data de nascimento inválida.", 2)
@@ -229,39 +295,31 @@ class AtletaById(Resource):
                 message = Message("Você deve ter pelo menos 16 anos para se cadastrar.", 2)
                 return marshal(message, message_fields), 400
 
-            if not atleta.telefone:
+            if not telefone:
                 logger.info("Telefone não informado")
                 message = Message("Telefone não informado", 2)
                 return marshal(message, message_fields), 400
 
-            if not re.match(r'^\(\d{2}\) \d{5}-\d{4}$', atleta.telefone):
+            if not re.match(r'^\(\d{2}\) \d{5}-\d{4}$', telefone):
                 logger.info("Telefone informado incorretamente")
                 message = Message("Telefone informado incorretamente", 2)
                 return marshal(message, message_fields), 400
 
-            if not atleta.email:
+            if not email:
                 logger.info("Email não informado")
                 message = Message("Email não informado", 2)
                 return marshal(message, message_fields), 400
 
-            padrao_email = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-            if re.match(padrao_email, atleta.email) is None:
+            if re.match(padrao_email, email) is None:
                 logger.info("Email informado incorretamente")
                 message = Message("Email informado incorretamente", 2)
                 return marshal(message, message_fields), 400
 
-            if not senha:
-                logger.info("Senha não informada")
-                message = Message("Senha não informada", 2)
-                return marshal(message, message_fields), 400
-
-            padrao_senha = PasswordPolicy.from_names(length=8, uppercase=1, numbers=1, special=1)
-            verify_senha = padrao_senha.test(senha)
-            if len(verify_senha) != 0:
-                message = Message("Senha informada incorretamente", 2)
-                return marshal(message, message_fields), 400
-
-            atleta.senha = generate_password_hash(senha)  # Hashing the password before saving
+            atleta.nome = args["nome"]
+            atleta.genero = args["genero"]
+            atleta.nascimento = args["nascimento"]
+            atleta.telefone = args["telefone"]
+            atleta.email = args["email"]
 
             db.session.add(atleta)
             db.session.commit()

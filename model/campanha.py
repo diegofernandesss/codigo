@@ -12,6 +12,7 @@ campanha_fields = {
   'valor_arrecadado': fields.Float,
   'conta_destino': fields.String,
   'atleta_id': fields.Integer,
+  'status': fields.String,
   'created_at': fields.DateTime
 }
 
@@ -35,6 +36,7 @@ class Campanha(db.Model):
   valor_arrecadado = db.Column(db.Float, nullable=False)
   conta_destino = db.Column(db.String, nullable=False)
   atleta_id = db.Column(db.Integer, db.ForeignKey('atleta.id_pessoa'), nullable=True)
+  status = db.Column(db.String, nullable=True, default="Em andamento")
   created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
 
   atleta = db.relationship("Atleta", backref=db.backref("campanhas", lazy=True))

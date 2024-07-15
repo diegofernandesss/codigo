@@ -9,7 +9,7 @@ from helpers.database import db, migrate
 #Importação dos models e resources
 from resources.pessoa import Pessoas, PessoaByNome
 from resources.doador import Doadores, DoadorById, updatedInfoPaymentDoador, DoadorInfo
-from resources.campanha import Campanhas, CampanhasById, CampanhaPagination
+from resources.campanha import Campanhas, CampanhasById, CampanhaPagination, CampanhaFinalizada
 from resources.atleta import Atletas, AtletaById, AtletaCampaigns, AtletaInfo, CampanhaAtletaById
 from resources.login import Login
 from resources.logout import Logout
@@ -59,6 +59,7 @@ api.add_resource(HistoricoDoacoesAtleta, '/historico-campanha') #Histórico das 
 api.add_resource(Campanhas, '/campanhas')
 api.add_resource(CampanhaPagination, '/campanha')
 api.add_resource(CampanhasById, '/campanhas/<int:id_campanha>')
+api.add_resource(CampanhaFinalizada, '/campanhas/finalizadas')
 
 api.add_resource(Atletas, '/atletas')
 api.add_resource(AtletaCampaigns, '/atleta-campanhas')

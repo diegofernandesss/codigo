@@ -55,10 +55,18 @@ class DoacoesCampanha(Resource):
             doador = Doador.query.get(id_usuario)
             campanha = Campanha.query.get(campanhaId)
 
+            if campanha.meta_arrecadacao == 0:
+                logger.info("Campanha já atingiu a meta de arrecadação")
+                message = Message("Campanha já atingiu a meta de arrecadação", 2)
+                return marshal(message, message_fields), 400
             
-            
+            if valor > campanha.meta_arrecadacao:
+                logger.info("Valor maior que a meta de arrecadação")
+                message = Message("Valor maior que a meta de arrecadação", 2)
+                return marshal(message, message_fields), 400
+                        
             if valor <= 0:
-                logger.info("Valor da doação inválido")
+                logger.info("Valor da doação invalido")
                 message = Message("Valor da doação inválida", 2)
                 return marshal(message, message_fields), 400
 
@@ -82,17 +90,8 @@ class DoacoesCampanha(Resource):
 
             campanha.valor_arrecadado += valor
             campanha.meta_arrecadacao -= valor
-
-            # if valor > campanha.meta_arrecadacao:
-            #     logger.info("Valor maior que a meta de arrecadacao")
-            #     message = Message("Valor maior que a meta de arrecadação", 2)
-            #     return marshal(message, message_fields), 400
-
-            # if campanha.meta_arrecadacao == 0:
-            #     logger.info("Campanha já atingiu a meta de arrecadação")
-            #     message = Message("Campanha já atingiu a meta de arrecadação", 2)
-            #     return marshal(message, message_fields), 400
-
+            if campanha.meta_arrecadacao == 0:
+                campanha.status = "Finalizada"
             db.session.add(doacao)
             db.session.add(campanha)
             db.session.commit()
@@ -172,7 +171,7 @@ class DoacoesCampanha(Resource):
                     </body>
                 </html>
                 '''
-            mail.send(msg)
+            # mail.send(msg)
 
             logger.info("Doacao cadastrado com sucesso!")
             return marshal(doacao, doacaoCampanha_fields), 201

@@ -288,7 +288,6 @@ class AtletaById(Resource):
         message = Message("Atleta deletado com sucesso!", 3)
         return marshal(message, message_fields), 200
 
-
 class AtletaByNome(Resource):
     def get(self, nome):
         atleta = Atleta.query.filter_by(nome=nome).all()
@@ -314,7 +313,6 @@ class AtletaMe(Resource):
 
         logger.info(f"Atleta {id} encontrada com sucesso!")
         return marshal(atleta, atleta_fields), 200
-
 class AtletaInfo(Resource):
     @token_verifica
     def get(self, tipo, refreshToken, usuario_id):
@@ -323,3 +321,4 @@ class AtletaInfo(Resource):
             return marshal(message, message_fields), 401
         atleta = Atleta.query.get(usuario_id)
         return marshal(atleta, atleta_fields), 200
+    

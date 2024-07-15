@@ -15,12 +15,12 @@ parser.add_argument('conta_destino', type=str, help='Problema na conta de destin
 
 class Campanhas(Resource):
     @token_verifica
-    def get(self, tipo, refresh_token, id):
+    def get(self, tipo, refresh_token, id_campanha):
         if tipo != 'doador':
             message = Message("Acesso Não autorizado", 2)
             return marshal(message, message_fields), 401
         logger.info("Campanhas listadas com sucesso!")
-        campanhas = Campanha.query.all()
+        campanhas = Campanha.query.filter_by(id=id_campanha, status="Em andamento").first()
         return marshal(campanhas, campanha_fields), 200
 
     @token_verifica
@@ -87,7 +87,7 @@ class CampanhasById(Resource):
             message = Message("Acesso não autorizado", 1)
             return  marshal(message, message_fields)
 
-        campanha = Campanha.query.get(id_campanha)
+        campanha = Campanha.query.filter_by(id=id_campanha,status="Em andamento").first()
 
         if campanha is None:
             logger.error(f"Campanha {id_campanha} não encontrada")
@@ -167,7 +167,7 @@ class CampanhasById(Resource):
 
     @token_verifica    
     def delete(self, tipo, refresh_token, id_usuario, id_campanha):
-        campanha = Campanha.query.get(id_campanha)
+        campanha = Campanha.query.filter_by(id=id_campanha, status="Em andamento").first()
 
         if campanha is None:
             logger.error(f"Campanha {id_campanha} não encontrada")
@@ -182,7 +182,7 @@ class CampanhasById(Resource):
 
 class CampanhaByNome(Resource):
     def get(self, nome):
-        campanha = Campanha.query.filter_by(titulo=nome).all()
+        campanha = Campanha.query.filter_by(titulo=nome, status="Em andamento").all()
 
         if not campanha:
             logger.error(f"Campanha {nome} não encontrada")
@@ -194,7 +194,7 @@ class CampanhaByNome(Resource):
 
 class CampanhaMe(Resource):
     def get(self):
-        campanhas = Campanha.query.all()
+        campanhas = Campanha.query.filter_by(status="Em andamento").all()
 
         if not campanhas:
             logger.error("Nenhuma campanha encontrada")
@@ -213,7 +213,7 @@ class CampanhaPagination(Resource):
     pageIndex = request.args.get("pageIndex", 1, type=int)
     perPage= request.args.get("per-page", 6, type=int)
 
-    campanhas = Campanha.query.all()
+    campanhas = Campanha.query.filter_by(status="Em andamento").all()
     campanhas_query = Campanha.query.order_by(desc(Campanha.created_at))
     campanhaPagination = campanhas_query.paginate(page=pageIndex, per_page=perPage, error_out=False)
 
@@ -221,3 +221,16 @@ class CampanhaPagination(Resource):
 
     logger.info("Campanhas listados com sucesso")
     return marshal(data, campanhasFieldsPagination), 200
+  
+class CampanhaFinalizada(Resource):
+    @token_verifica
+    def get(self, tipo, refreshToken, usuario_id):
+        if tipo != 'atleta':
+            logger.error(f"Usuario nao autorizado")
+            message = Message("Acesso não autorizado", 1)
+            return  marshal(message, message_fields)
+
+        campanha = Campanha.query.filter_by(atleta_id=usuario_id, status="Finalizada").all()
+        
+        logger.info("Campanha listada com sucesso")
+        return marshal(campanha, campanha_fields), 200
